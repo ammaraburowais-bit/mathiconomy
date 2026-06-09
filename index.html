@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MATHICONOMY | APEX SUPREMACY v8.0</title>
+    <!-- SECURITY HEADERS (UNHACKABLE PROTOCOL) -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="referrer" content="no-referrer">
+    <meta name="robots" content="index, follow">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root { --blue: #3b82f6; --bg: #000000; --text: #ffffff; --glass: rgba(15, 23, 42, 0.85); }
+        .light { --blue: #2563eb; --bg: #f8fafc; --text: #020617; --glass: rgba(255, 255, 255, 0.8); }
+
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden; height: 100vh; transition: background 0.4s, color 0.4s;
+            cursor: default;
+        }
+
+        /* --- BACKGROUND ENGINE --- */
+        #canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.25; pointer-events: none; }
+        .grid-bg { position: fixed; inset: 0; background-image: radial-gradient(circle at 2px 2px, rgba(59,130,246,0.1) 1px, transparent 0); background-size: 40px 40px; z-index: -2; }
+        .radar { position: fixed; top: 50%; left: 50%; width: 150vmax; height: 150vmax; background: conic-gradient(from 0deg, transparent, rgba(59, 130, 246, 0.05), transparent 30deg); transform: translate(-50%, -50%); animation: rotate 12s linear infinite; z-index: -2; }
+        @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        /* --- RESPONSIVE NAVIGATION --- */
+        .sidebar { 
+            width: 80px; height: 100vh; position: fixed; left: 0; top: 0; 
+            border-right: 1px solid rgba(128, 128, 128, 0.1); background: #050505; z-index: 1000;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+            display: none;
+        }
+        @media (min-width: 1024px) { .sidebar { display: flex; flex-direction: column; align-items: center; } .sidebar:hover { width: 240px; align-items: flex-start; padding-left: 25px; } }
+        
+        .mobile-dock { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; 
+            background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(15px); 
+            border-top: 1px solid rgba(255,255,255,0.1); 
+            display: flex; justify-content: space-around; align-items: center; z-index: 1000; 
+        }
+        @media (min-width: 1024px) { .mobile-dock { display: none; } }
+
+        .main-content { padding: 20px; height: 100vh; overflow-y: auto; scroll-behavior: smooth; scrollbar-width: none; }
+        @media (min-width: 1024px) { .main-content { margin-left: 80px; padding: 50px; } }
+
+        /* --- UI COMPONENTS --- */
+        .glass { background: var(--glass); backdrop-filter: blur(25px); border: 1px solid rgba(128, 128, 128, 0.1); border-radius: 30px; }
+        .terminal-card { background: rgba(128, 128, 128, 0.03); border: 1px solid rgba(128,128,128,0.1); padding: 35px; font-family: 'JetBrains Mono', monospace; transition: 0.3s cubic-bezier(0.2, 1, 0.2, 1); cursor: pointer; }
+        .terminal-card:hover { border-color: var(--blue); transform: translateY(-8px); box-shadow: 0 0 50px rgba(59, 130, 246, 0.2); }
+        
+        .btn-apex { background: var(--blue); color: #fff; font-weight: 900; padding: 16px 36px; border-radius: 12px; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; display: inline-block; }
+        .btn-apex:hover { transform: scale(1.05); box-shadow: 0 0 40px var(--blue); cursor: pointer; }
+
+        .sidebar-label { opacity: 0; white-space: nowrap; transition: 0.3s; font-size: 11px; font-weight: 900; margin-left: 15px; letter-spacing: 1px; color: #64748b; }
+        .sidebar:hover .sidebar-label { opacity: 1; }
+
+        .modal { display: none; position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, 0.98); align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; animation: modalIn 0.25s forwards; }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+        .folder-node { background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.1); padding: 25px; border-radius: 16px; transition: 0.2s; text-align: left; }
+        .folder-node:hover { background: var(--blue); color: #fff; font-weight: 900; }
+
+        .xp-bar { height: 4px; background: rgba(128,128,128,0.1); border-radius: 10px; overflow: hidden; }
+        .xp-fill { height: 100%; background: var(--blue); width: 0%; transition: 1.5s; }
+
+        .folder-tree { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #64748b; line-height: 2.5; }
+        .folder-tree b { color: var(--blue); cursor: pointer; border-bottom: 1px solid transparent; }
+        .folder-tree b:hover { color: var(--text); border-bottom: 1px solid var(--blue); }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="selection:bg-blue-600">
+    <div class="grid-bg"></div>
+    <div class="radar"></div>
+    <canvas id="canvas"></canvas>
+
+    <!-- THEME TOGGLE -->
+    <button onclick="toggleTheme()" class="fixed top-8 right-8 z-[2000] w-12 h-12 glass flex items-center justify-center text-xl shadow-2xl hover:scale-110 transition">
+        <i id="theme-icon" class="fa-solid fa-moon text-blue-500"></i>
+    </button>
+
+    <!-- SIDEBAR (DESKTOP) -->
+    <aside class="sidebar py-10">
+        <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-black text-xl mb-16 shadow-lg shadow-blue-600/30">M</div>
+        <nav class="flex flex-col gap-10 text-slate-500 w-full">
+            <a href="#" onclick="openModal('arenaModal')" class="flex items-center hover:text-blue-500 px-2"><i class="fa-solid fa-crosshairs w-6"></i> <span class="sidebar-label uppercase">Combat Arena</span></a>
+            <a href="#" onclick="openVault('MATHS')" class="flex items-center hover:text-blue-500 px-2"><i class="fa-solid fa-vault w-6"></i> <span class="sidebar-label uppercase">Logic Vaults</span></a>
+            <a href="#roadmap" class="flex items-center hover:text-blue-500 px-2"><i class="fa-solid fa-map-location-dot w-6"></i> <span class="sidebar-label uppercase">Deployment</span></a>
+            <a href="#" onclick="openModal('dmModal')" class="flex items-center hover:text-blue-500 px-2"><i class="fa-solid fa-message w-6"></i> <span class="sidebar-label uppercase">Secure Intel</span></a>
+        </nav>
+        <div class="mt-auto mb-10 flex flex-col gap-8 items-center w-full px-2">
+            <a href="https://instagram.com/mathiconomy" target="_blank" class="text-slate-500 hover:text-pink-500 transition text-xl"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://tiktok.com/@mathdude2" target="_blank" class="text-slate-500 hover:text-white transition text-xl"><i class="fa-brands fa-tiktok"></i></a>
+        </div>
+    </aside>
+
+    <!-- BOTTOM NAV (MOBILE) -->
+    <nav class="mobile-dock">
+        <a href="#" onclick="openModal('arenaModal')" class="text-blue-500"><i class="fa-solid fa-crosshairs text-2xl"></i></a>
+        <a href="#" onclick="openVault('MATHS')" class="text-slate-500"><i class="fa-solid fa-vault text-2xl"></i></a>
+        <a href="#roadmap" class="text-slate-500"><i class="fa-solid fa-map-location-dot text-2xl"></i></a>
+        <a href="#" onclick="openModal('dmModal')" class="text-slate-500"><i class="fa-solid fa-message text-2xl"></i></a>
+    </nav>
+
+    <main class="main-content">
+        
+        <!-- HUD HEADER -->
+        <header class="flex flex-col lg:flex-row justify-between items-center mb-24 gap-10 border-b border-gray-500/10 pb-12 text-center lg:text-left">
+            <div>
+                <h2 class="text-[10px] font-black text-blue-500 tracking-[0.8em] uppercase mb-3">System Hub // Secure Transmission Active</h2>
+                <h1 class="text-6xl md:text-9xl font-black uppercase italic tracking-tighter">MATHICONOMY</h1>
+                <p class="text-[10px] font-bold opacity-50 mt-4 uppercase tracking-[0.4em]">Developer: Ammar (Year 11) // Target: A* Global Mastery</p>
+            </div>
+            <div class="glass p-8 flex flex-col md:flex-row items-center gap-10 border-l-4 border-blue-600">
+                <div class="text-right">
+                    <p class="text-[9px] font-black text-blue-500 uppercase mb-2 tracking-widest">Mastery Rank</p>
+                    <p class="text-2xl font-black italic tracking-widest text-blue-400" id="rank">SCHOLAR</p>
+                    <div class="w-40 xp-bar mt-3"><div id="xp-fill" class="xp-fill"></div></div>
+                </div>
+                <div class="h-12 w-[1px] bg-gray-500/20 hidden md:block"></div>
+                <div class="text-right">
+                    <p class="text-[9px] font-black text-red-500 uppercase mb-1">Time To Exams</p>
+                    <p id="countdown" class="text-3xl font-black tabular-nums tracking-tighter">000 : 00 : 00</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- THE ARENA (CLEANEST VERSION) -->
+        <section class="mb-32">
+            <div class="glass p-10 md:p-24 rounded-[50px] md:rounded-[70px] border-blue-600/30 border-2 relative overflow-hidden group text-center lg:text-left">
+                <div class="relative z-10">
+                    <span class="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest mb-10 inline-block shadow-2xl">ALPHA ENGINE v1.0 LIVE</span>
+                    <h2 class="text-6xl md:text-9xl font-black uppercase italic tracking-tighter mb-10 leading-none">THE MATHS <br><span class="text-blue-600 underline decoration-blue-600/30">ARENA.</span></h2>
+                    <p class="text-slate-400 text-xl font-medium mb-12 max-w-2xl leading-relaxed italic mx-auto lg:mx-0">
+                        "Stop memorizing. Start executing. I built the Arena to turn A-Level prep into high-stakes time-pressure practice. Your active recall journey starts here."
+                    </p>
+                    <div class="flex flex-wrap justify-center lg:justify-start gap-8">
+                        <button onclick="openModal('arenaModal')" class="btn-apex px-14 py-6 text-sm tracking-widest shadow-blue-600/40">Initialize Arena</button>
+                        <button onclick="openModal('dmModal')" class="glass px-10 py-6 text-[10px] font-black uppercase tracking-widest border-blue-500/20 hover:bg-blue-600 transition">Submit Feedback</button>
+                    </div>
+                </div>
+                <i class="fa-solid fa-fire text-[350px] absolute -right-20 -bottom-20 opacity-5 -rotate-12 group-hover:rotate-0 transition duration-1000 text-blue-600"></i>
+            </div>
+        </section>
+
+        <!-- SUBJECT TERMINALS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-40">
+            <div onclick="openVault('MATHS')" class="terminal-card rounded-[35px] border-l-4 border-l-blue-600">
+                <i class="fa-solid fa-calculator text-4xl text-blue-500 mb-8 mx-auto block"></i>
+                <h4 class="text-2xl font-black uppercase italic tracking-tighter">Maths</h4>
+                <p class="text-[10px] opacity-40 uppercase mt-4 tracking-widest font-black">Operational</p>
+            </div>
+            <div onclick="openVault('FURTHER')" class="terminal-card rounded-[35px] border-l-4 border-l-blue-400">
+                <i class="fa-solid fa-infinity text-4xl text-blue-400 mb-8 mx-auto block"></i>
+                <h4 class="text-2xl font-black uppercase italic tracking-tighter">Further</h4>
+                <p class="text-[10px] opacity-40 uppercase mt-4 tracking-widest font-black">Operational</p>
+            </div>
+            <div onclick="openVault('ECON')" class="terminal-card rounded-[35px] border-l-4 border-l-green-500">
+                <i class="fa-solid fa-chart-line text-4xl text-green-500 mb-8 mx-auto block"></i>
+                <h4 class="text-2xl font-black uppercase italic tracking-tighter">Economy</h4>
+                <p class="text-[10px] opacity-40 uppercase mt-4 tracking-widest font-black">Operational</p>
+            </div>
+            <div onclick="openVault('PHYSICS')" class="terminal-card rounded-[35px] border-l-4 border-l-white">
+                <i class="fa-solid fa-atom text-4xl text-white mb-8 mx-auto block"></i>
+                <h4 class="text-2xl font-black uppercase italic tracking-tighter">Physics</h4>
+                <p class="text-[10px] opacity-40 uppercase mt-4 tracking-widest font-black">Operational</p>
+            </div>
+        </div>
+
+        <!-- C:/ DIRECTORY (IMPROVED) -->
+        <section class="mb-40">
+            <h3 class="text-4xl font-black uppercase italic mb-12 tracking-tighter border-b border-gray-500/10 pb-6 inline-block">Command Vault // C:</h3>
+            <div class="glass p-12 rounded-[40px] border-white/5">
+                <div class="folder-tree">
+                    MATHICONOMY_LOCAL_DATA<br>
+                    └── <i class="fa-solid fa-folder-open text-blue-500"></i> Mathematics<br>
+                    &nbsp;&nbsp;&nbsp;├── <b onclick="openVault('MATHS')">Year 1 & 2 Logic (Calculus Hub)</b><br>
+                    &nbsp;&nbsp;&nbsp;└── <b onclick="openVault('MATHS')">Applied Modules (Mechanics, Stats)</b><br>
+                    <br>
+                    └── <i class="fa-solid fa-folder-open text-blue-500"></i> Economics<br>
+                    &nbsp;&nbsp;&nbsp;├── <b onclick="openVault('ECON')">Micro_Thematic (Markets)</b><br>
+                    &nbsp;&nbsp;&nbsp;└── <b onclick="openVault('ECON')">Macro_Systems (National Logic)</b>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROADMAP (PHASE 1 ACTIVE) -->
+        <section id="roadmap" class="mb-40 pt-20">
+            <h3 class="text-center text-5xl font-black uppercase italic mb-20 tracking-tighter text-blue-600">Empire Deployment</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div class="glass p-12 rounded-[45px] text-center border-blue-600/50 border-2 shadow-[0_0_50px_rgba(59,130,246,0.1)]">
+                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4 block">Current Task</span>
+                    <h4 class="text-2xl font-black mb-4">PHASE 01</h4>
+                    <p class="text-xs font-bold text-white uppercase tracking-widest opacity-60">Arena Launch & Year 1 Logic Nodes</p>
+                </div>
+                <div class="glass p-12 rounded-[45px] text-center opacity-40 grayscale">
+                    <h4 class="text-2xl font-black mb-4">PHASE 02</h4>
+                    <p class="text-xs font-bold uppercase tracking-widest">Predicted Papers & Deep Intel Vaults</p>
+                </div>
+                <div class="glass p-12 rounded-[45px] text-center opacity-20 grayscale">
+                    <h4 class="text-2xl font-black mb-4">PHASE 03</h4>
+                    <p class="text-xs font-bold uppercase tracking-widest">AI Tutor Node & Global Leaderboards</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="text-center pb-32 opacity-10 text-[10px] font-black uppercase tracking-[1.5em] mt-20">
+            QUANTGRID SYSTEMS // MATHICONOMY
+        </footer>
+
+    </main>
+
+    <!-- MODAL: DMs CHOOSER -->
+    <div id="dmModal" class="modal" onclick="closeModal('dmModal')">
+        <div class="glass max-w-lg w-full p-20 rounded-[80px] text-center border-blue-600 border-2 shadow-[0_0_80px_rgba(59,130,246,0.2)]" onclick="event.stopPropagation()">
+            <h3 class="text-5xl font-black uppercase italic mb-10 tracking-tighter">DIRECT LINK</h3>
+            <p class="text-slate-400 font-medium mb-12 text-lg italic leading-relaxed">Year 11 pipeline established. Send app feedback or logic requests directly.</p>
+            <div class="flex flex-col gap-6">
+                <a href="https://instagram.com/mathiconomy" target="_blank" class="bg-gradient-to-r from-pink-600 to-indigo-600 text-white py-7 rounded-2xl font-black uppercase text-xs tracking-[0.4em] transition hover:scale-105 shadow-xl">Instagram Direct</a>
+                <a href="https://tiktok.com/@mathdude2" target="_blank" class="bg-white text-black py-7 rounded-2xl font-black uppercase text-xs tracking-[0.4em] transition hover:scale-105 shadow-xl">TikTok Message</a>
+            </div>
+            <button onclick="closeModal('dmModal')" class="mt-10 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition">Terminate Link</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ARENA CONFIRM -->
+    <div id="arenaModal" class="modal" onclick="closeModal('arenaModal')">
+        <div class="glass max-w-lg w-full p-16 rounded-[60px] text-center border-blue-600 border-2" onclick="event.stopPropagation()">
+            <div class="w-20 h-20 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-8 text-blue-500"><i class="fa-solid fa-crosshairs text-3xl"></i></div>
+            <h3 class="text-4xl font-black uppercase italic mb-8">INITIALIZE ARENA?</h3>
+            <div class="flex flex-col gap-4">
+                <a href="https://advanced-maths-arena-gcse-a-level-287732426369.europe-west1.run.app/" target="_blank" class="bg-blue-600 text-white py-6 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-2xl">LAUNCH ENGINE</a>
+                <button onclick="closeModal('arenaModal')" class="text-[10px] font-black text-slate-600 uppercase underline mt-4">Abort Sequence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: FOLDER SYSTEM -->
+    <div id="vaultModal" class="modal" onclick="closeModal('vaultModal')">
+        <div class="glass max-w-5xl w-full p-16 rounded-[60px] relative overflow-hidden" onclick="event.stopPropagation()">
+            <button onclick="closeModal('vaultModal')" class="absolute top-10 right-14 text-4xl font-light opacity-20 hover:opacity-100 transition">&times;</button>
+            <h2 id="vaultTitle" class="text-5xl font-black uppercase italic text-blue-600 mb-12 underline decoration-blue-600/20 underline-offset-8">DIRECTORY HUB</h2>
+            <div id="modalGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <button onclick="backToHub()" id="backBtn" class="hidden mt-12 text-[10px] font-black uppercase text-blue-500 underline underline-offset-8">Return to Categories</button>
+        </div>
+    </div>
+
+    <!-- MODAL: LOCKED CONTENT -->
+    <div id="contentModal" class="modal" onclick="closeModal('contentModal')">
+        <div class="glass max-w-md w-full p-20 rounded-[70px] text-center border-blue-600/20 border-2" onclick="event.stopPropagation()">
+            <i class="fa-solid fa-microchip text-6xl text-blue-600 mb-10 animate-pulse"></i>
+            <h3 id="nodeTitle" class="text-3xl font-black uppercase mb-6 tracking-tighter">DATA LOCKED</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-12 italic">"I am currently refining the A* standard logic for this node. The drop is imminent. Support the journey on socials."</p>
+            <button onclick="closeModal('contentModal')" class="bg-blue-600 text-white w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest">Acknowledge</button>
+        </div>
+    </div>
+
+    <script>
+        const db = {
+            'MATHS': [{ name: 'Mathematical Logic (Yr 1)', sub: ['Algebraic Methods', 'Trigonometry', 'Vectors', 'Differentiation'] }, { name: 'Mathematical Logic (Yr 2)', sub: ['Integration', 'Parametrics', 'Numerical Methods'] }, { name: 'Applied Command Nodes', sub: ['Mechanics: Forces', 'Mechanics: Kinematics', 'Stats: Normal Dist'] }],
+            'FURTHER': [{ name: 'Further Core Nodes', sub: ['Complex Numbers', 'Matrices', 'Series', 'Hyperbolics'] }, { name: 'Further Applied', sub: ['Decision Maths', 'FM Mechanics'] }],
+            'ECON': [{ name: 'Micro-Logic Theme', sub: ['Theme 1: Markets', 'Theme 3: Business Behaviour'] }, { name: 'Macro-Logic Theme', sub: ['Theme 2: National Economy', 'Theme 4: Global Economy'] }],
+            'PHYSICS': [{ name: 'AS Module Nodes', sub: ['Particles', 'Quantum Logic', 'Waves'] }, { name: 'A2 Module Nodes', sub: ['Fields', 'Nuclear Physics', 'Thermal'] }]
+        };
+
+        const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+        let parts = []; function initP() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            for(let i=0; i<80; i++) parts.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.25, vy: (Math.random()-0.5)*0.25 });
+            animate();
+        }
+        function animate() {
+            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = '#3b82f6';
+            parts.forEach(p => { p.x += p.vx; p.y += p.vy; if(p.x < 0 || p.x > canvas.width) p.vx *= -1; if(p.y < 0 || p.y > canvas.height) p.vy *= -1; ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI*2); ctx.fill(); });
+            requestAnimationFrame(animate);
+        }
+
+        let currentHub = ''; let xp = parseInt(localStorage.getItem('qg_master_xp')) || 0;
+        function openVault(hub) {
+            currentHub = hub; const grid = document.getElementById('modalGrid'); grid.innerHTML = '';
+            document.getElementById('vaultTitle').innerText = hub + " DIRECTORY";
+            db[hub].forEach(node => {
+                const div = document.createElement('div'); div.className = "folder-node cursor-pointer";
+                div.innerHTML = `<h5 class="uppercase text-lg mb-1">${node.name}</h5><p class="text-[9px] opacity-40 uppercase">${node.sub.length} Topics</p>`;
+                div.onclick = () => openSub(node); grid.appendChild(div);
+            });
+            document.getElementById('backBtn').classList.add('hidden'); document.getElementById('vaultModal').classList.add('active');
+        }
+        function openSub(node) {
+            const grid = document.getElementById('modalGrid'); grid.innerHTML = '';
+            document.getElementById('vaultTitle').innerText = node.name.toUpperCase();
+            node.sub.forEach(t => {
+                const div = document.createElement('div'); div.className = "folder-node border-dashed border-blue-600/30 cursor-pointer";
+                div.innerHTML = `<h5 class="uppercase text-lg">${t}</h5><p class="text-[9px] text-blue-500 uppercase font-black">Intel Syncing...</p>`;
+                div.onclick = () => { document.getElementById('nodeTitle').innerText = t.toUpperCase(); document.getElementById('contentModal').classList.add('active'); };
+                grid.appendChild(div);
+            });
+            document.getElementById('backBtn').classList.remove('hidden');
+        }
+        function addXP(n) { xp += n; localStorage.setItem('qg_master_xp', xp); updateUI(); }
+        function updateUI() {
+            document.getElementById('xp-fill').style.width = Math.min((xp / 1000) * 100, 100) + "%";
+            if(xp > 1000) document.getElementById('rank').innerText = "TITAN ARCHITECT";
+        }
+        function toggleTheme() {
+            const h = document.documentElement; const i = document.getElementById('theme-icon');
+            if (h.classList.contains('dark')) { h.classList.remove('dark'); h.classList.add('light'); i.className = "fa-solid fa-sun"; }
+            else { h.classList.remove('light'); h.classList.add('dark'); i.className = "fa-solid fa-moon"; }
+        }
+        function backToHub() { openVault(currentHub); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function updateTimer() {
+            const target = new Date("May 15, 2027").getTime();
+            const diff = target - new Date().getTime();
+            const d = Math.floor(diff / 86400000); const h = Math.floor((diff % 86400000) / 3600000); const m = Math.floor((diff % 3600000) / 60000);
+            document.getElementById("countdown").innerText = `${d} : ${h} : ${m}`;
+        }
+        setInterval(updateTimer, 1000); updateTimer(); updateUI(); initP();
+    </script>
+</body>
+</html>
